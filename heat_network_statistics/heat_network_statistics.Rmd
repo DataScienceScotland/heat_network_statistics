@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+date: "`r Sys.Date()`"
+sgtemplates:
+  datatables:
+    features:
+      info: true
+      ordering: true
+      paging: true
+      searching: false
+  header:
+    phase_banner:
+      tag: "WIP"
+      text: "This is a work in progress."
+    site_branding: "Scottish Government"
+  metadata:
+    label: "Report"
+  navigation:
+    toc:
+      sticky: false
+output:
+  html_document:
+    code_download: false
+    df_print: paged
+    fig_caption: true
+    number_sections: false
+    self_contained: false
+    template: "_template.html"
+    toc: true
+    toc_depth: 2
+    toc_float: false
+---
+
+```{r setup, include = FALSE}
+
+# Options ==== 
+
+knitr::opts_chunk$set(echo = F, 
+                      error = F, 
+                      warning = F)
+
+options(digits=2) # two decimal points 
+options(scipen=999) # disable scientific notation, specifically important for unique property reference numbers (UPRNs)
+
+# Packages ==== 
+
+libraries <- c("tidyverse", "janitor", "scsplot", "kableExtra", "patchwork")
+lapply(libraries, require, character.only = T)
+
+# Data Load ====
+
+#TODO: locate and load all data
+```
