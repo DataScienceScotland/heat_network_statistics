@@ -77,17 +77,17 @@ network_emissions_table <- hnmbr_emissions_variables %>%
 ```
 
 We do not expect: 
+
 - ambient heat 
 - waste heat 
 
-to have a contribution to emissions 
+to have a contribution to emissions. They were removed from the rest of this table to avoid unnecessary information cluttering. 
 
-For oil, GHG conversion factor of LPG was used (closest to Kerosene I could think of (or google)). 
+*For oil, GHG conversion factor of LPG was used (closest to Kerosene I could think of (or Google)). 
 
-For networks with "other" fuel types, I was not able to discern what fuel they use, therefore we cannot estimate contribition to emissions. 
+For networks with "other" fuel types, I was not able to discern what fuel they use, therefore we cannot estimate contribution to emissions. These networks were removed. 
 
 ```{r}
-
 network_emissions_table <- network_emissions_table %>% 
   inner_join(ghg_conv_factors, by = c("primary_energy_source" = "Fuel_type")) 
 
@@ -99,8 +99,85 @@ network_emissions_table <- network_emissions_table %>%
 network_emissions_table <- network_emissions_table %>% 
   filter(kg_CO2e > 0)
 
+network_emissions_table
 ```
 
-Does TDCV account for boiler efficiency.
+This table represents the total emissions contributions for all networks we could calculate. 
+
+
+```{r}
+
+total_CO2e_kg_all_networks <- network_emissions_table %>% 
+  summarise(total_emissions_kg_CO2e = sum(kg_CO2e))
+
+total_CO2e_kg_all_networks
+
+```
+
+The total emission contribution of heat networks is equal to `r total_CO2e_kg_all_networks` / one hundred seventeen million nine hundred seven thousand three hundred ten kilograms of CO2e
+
+## 2) Estimating emissions reduction associated with being on a network. 
+
+In order to estimate how much emission reduction is associated with being on a heating network, we have to estimate the associated emissions contribution of not being on a network i.e. each connected customer being on an individual gas boiler. 
+
+Because of large variance within non-domestic building stock, we cannot confidently estimate emissions on a customer-connection level. 
+
+As an alternative, we will estimate the emissions reductions associated with being on a network within domestic connections.
+
+### Procedure
+
+To do this, we will use values from domestic connections 
+
+Based on the number of domestic connections, we will calculate the amount of emissions those connections would contribute using a range of typical daily consumption values (TDCVs) and the green-house gas conversion factors for natural gas. This will give us a range of estimates of how much we could expect domestic connections to contribute to emissions IF they were on individual gas boilers. 
+
+Next, we will calculate the actual supply received for all of these domestic networks, and calculate the emissions contribution. 
+
+Then, we will calculate the % difference in the associated emissions between the alternative scenario and the current data
+
+This % difference will then be applied to the remaining, non-domestic connections. 
+
+We will then combine both estimates for domestic and non-domestic contributions to emissions based on individual gas boilers, and compare this against the actual emissions contributions figure above. 
+
+```{r}
+# First, we create a subset of the hnmbr emissions variables only containing domestic connections 
+
+hnmbr_emissions_variables_domestic <- hnmbr_emissions_variables %>% 
+  filter(customers_residential > 0)
+
+hnmbr_emissions_variables_domestic
+
+```
+
+The most recent TDCV update (2020) sets TDCV for gas at 8000, 12000, 17000 at low, medium and high respectively.
+
+https://www.ofgem.gov.uk/publications/decision-typical-domestic-consumption-values-2020
+
+```{r}
+
+#creating a table to store TDCV values
+
+TDCV <- data_frame(
+  category = c("low", "medium", "high"), 
+  value = c(8000, 12000, 17000)
+)
+
+```
+
+```{r}
+
+# calculating total amount of domestic connections 
+
+domestic_connection <- pluck(sum(hnmbr_emissions_variables$customers_residential))
+
+```
+
+```{r}
+
+# now we will build up our estimate of domestic contributions towards emissions 
+
+domestic_network_emissions_table <- TDCV %>% 
+  rowwise() %>% 
+  mutate(supply_kwh = value * domestic_connection)
+```
 
 
