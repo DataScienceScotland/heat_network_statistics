@@ -1,0 +1,113 @@
+---
+title: 'Heat Networks '
+date: "`r Sys.Date()`"
+sgtemplates:
+  datatables:
+    features:
+      info: yes
+      ordering: yes
+      paging: yes
+      searching: no
+  header:
+    phase_banner:
+      tag: WIP
+      text: This is a work in progress.
+    site_branding: Scottish Government
+  metadata:
+    label: Report
+  navigation:
+    toc:
+      sticky: no
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    code_download: no
+    df_print: paged
+    fig_caption: yes
+    number_sections: no
+    self_contained: no
+    template: _template.html
+    toc: yes
+    toc_depth: 2
+    toc_float: no
+---
+
+```{r setup, include = FALSE}
+
+# Options ==== 
+
+knitr::opts_chunk$set(echo = F, 
+                      error = F, 
+                      warning = F)
+
+options(digits=2) # two decimal points 
+options(scipen=999) # disable scientific notation, specifically important for unique property reference numbers (UPRNs)
+
+# Packages ==== 
+
+libraries <- c("tidyverse", "janitor", "kableExtra", "patchwork", "sgplot")
+lapply(libraries, require, character.only = T)
+
+
+
+# Data Load ====
+
+#TODO: locate and load all data
+
+# Theme for plots
+
+sgplot::use_sgplot()
+```
+
+- The Heat Networks Act (2021) sets  out a target for 2.6 TWh of heat to be supplied via heat networks by 2027 and 6TWh by 2030. 
+
+- The Heat Networks Metering and Billing Regulations (here on now referred to as HNMBR) provide the main source of data on heat supply via heat networks. 
+
+- Since taking effect in 2014, there have been 2 cycles of HNMBR, one spanning from 2014-2018 (referred to as the 2018 data cycle), and one spanning 2018-2022 (referred to as the 2022 data cycle)
+
+- The most recent cycle has recently been concluded, giving an opportunity to analyse progress towards targets set out by the Heat Networks Act (2021)
+
+- TODO: ALSO SOME INTEREST IN CONTRIBUTION TO EMISSIONS REDUCTIONS. 
+
+In the below note, an outline is provided on the updates the latest batch of data provides. 
+
+## Contribution to Emissions Reductions 
+
+
+
+
+
+
+
+
+## Network and Customer Number Statistics
+
+### Number of Networks
+
+- The 2018 data cycle contained XXXX heat networks 
+- The 2022 data cycle contained XXXX heat networks
+- This is a XX% drop networks reported
+
+### Number of Network Types
+
+Below is a graph representing the number of networks grouped by network type (domestic, non-domestic and mixed).
+
+```{r}
+
+
+
+```
+
+### Number of Customers and Buildings 
+
+Below is a graph representing the number of customers and total buildings
+
+```{r}
+
+```
+
+### Number of Customers (by type)
+
+

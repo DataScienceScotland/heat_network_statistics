@@ -1,0 +1,106 @@
+---
+title: "heat_network_statistics_emissions"
+author: "Jakub Kowalczyk"
+date: "2023-05-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Options ==== 
+
+knitr::opts_chunk$set(echo = F, 
+                      error = F, 
+                      warning = F)
+
+options(digits=2) # two decimal points 
+options(scipen=999) # disable scientific notation, specifically important for unique property reference numbers (UPRNs)
+
+# Packages ==== 
+
+libraries <- c("tidyverse", "janitor", "kableExtra", "patchwork", "sgplot")
+lapply(libraries, require, character.only = T)
+
+
+
+# Data Load ====
+
+hnmbr_full <- read_csv("C:/Users/u453623/Documents/OFFLINE/heat_network_statistics/data/HNMBR_2018-2022_CLEANED.csv")
+
+ghg_conv_factors <- read_csv("C:/Users/u453623/Documents/OFFLINE/heat_network_statistics/data/ghg_conv_factors.csv")
+
+# Theme for plots
+
+sgplot::use_sgplot()
+```
+
+To calculate an estimate of how much heat networks contribute to emission reductions we will: 
+
+1) Estimate current emissions on a network level based on generation, fuel type & emissions factors from GSG 
+
+2) Estimate the emissions for each domestic connection as if they were all on gas boilers instead of networks .
+
+## 1) Estimate Heat Network Emissions 
+
+```{r}
+
+#selecting the variables that are needed 
+
+hnmbr_emissions_variables <- hnmbr_full %>% 
+  select(propert_name_heat_network, uprn, primary_energy_source, primary_tech_type, generation_heating_hot_water, customers_residential, total_customers, heat_network_customers)
+
+```
+
+```{r}
+#TODO: Issue with formatting of primary_energy_source variable
+
+hnmbr_emissions_variables <- hnmbr_emissions_variables %>% 
+  mutate(primary_energy_source = gsub("[^[:alnum:]]", "", tolower(primary_energy_source)))
+
+hnmbr_emissions_variables <- hnmbr_emissions_variables %>% 
+  mutate(primary_energy_source)
+
+
+```
+
+
+```{r}
+
+#calculating current emissions contribution 
+
+# generation * emissions_factor[based on fuel type per network]? 
+
+network_emissions_table <- hnmbr_emissions_variables %>% 
+  group_by(primary_energy_source) %>% 
+  summarise(number_of_networks = n(), 
+            generation_per_network_fuel = sum(generation_heating_hot_water, na.rm = T))
+
+```
+
+We do not expect: 
+- ambient heat 
+- waste heat 
+
+to have a contribution to emissions 
+
+For oil, GHG conversion factor of LPG was used (closest to Kerosene I could think of (or google)). 
+
+For networks with "other" fuel types, I was not able to discern what fuel they use, therefore we cannot estimate contribition to emissions. 
+
+```{r}
+
+network_emissions_table <- network_emissions_table %>% 
+  inner_join(ghg_conv_factors, by = c("primary_energy_source" = "Fuel_type")) 
+
+network_emissions_table <- network_emissions_table %>% 
+  mutate(kg_CO2e = generation_per_network_fuel * GHG_emissions_factor)
+
+# lets remove the 0s
+
+network_emissions_table <- network_emissions_table %>% 
+  filter(kg_CO2e > 0)
+
+```
+
+Does TDCV account for boiler efficiency.
+
+
