@@ -54,7 +54,13 @@ lapply(libraries, require, character.only = T)
 
 # Data Load ====
 
-#TODO: locate and load all data
+hnmbr_2018 <- read_csv("C:/Users/u453623/Documents/OFFLINE/heat_network_statistics/data/HNMBR_2015-2018.csv")
+
+hnmbr_2022 <- read_csv("C:/Users/u453623/Documents/OFFLINE/heat_network_statistics/data/HNMBR_2018-2022_CLEANED.csv")
+
+#LCHD 
+
+hnmbr_matched <- read_csv("C:/Users/u453623/Documents/OFFLINE/heat_network_statistics/data/HNMBR_2018-2022_MATCHED_446.csv")
 
 # Theme for plots
 
@@ -69,45 +75,132 @@ sgplot::use_sgplot()
 
 - The most recent cycle has recently been concluded, giving an opportunity to analyse progress towards targets set out by the Heat Networks Act (2021)
 
-- TODO: ALSO SOME INTEREST IN CONTRIBUTION TO EMISSIONS REDUCTIONS. 
-
 In the below note, an outline is provided on the updates the latest batch of data provides. 
 
-## Contribution to Emissions Reductions 
+## QA Note 
 
+QA figures: % missing for capacity, generation, supply, buildings customers, technology and fuel. 
 
-
-
-
-
-
-
-## Network and Customer Number Statistics
-
-### Number of Networks
-
-- The 2018 data cycle contained XXXX heat networks 
-- The 2022 data cycle contained XXXX heat networks
-- This is a XX% drop networks reported
-
-### Number of Network Types
-
-Below is a graph representing the number of networks grouped by network type (domestic, non-domestic and mixed).
+## Total Buildings and and customer numbers
 
 ```{r}
 
-
-
+hnmbr_2022 %>% 
+  summarise(total_buildings = sum(total_buildings, na.rm = T), 
+            total_customers = sum(total_customers, na.rm = T))
+  
 ```
 
-### Number of Customers and Buildings 
-
-Below is a graph representing the number of customers and total buildings
+### By network type
 
 ```{r}
 
+# ==== Formatting ====
+
+customer_number_variables <- c("customers_residential", "customers_industrial", "customers_commercial", "customers_public", "customers_other") 
+building_number_variables <- c("buildings_residential", "buildings_industrial", "buildings_commercial", "buildings_public", "buildings_other")
+
+hnmbr_2022 <- hnmbr_2022 %>% 
+  mutate(customers_non_domestic = customers_industrial + customers_commercial + customers_public + customers_other, 
+         buildings_non_domestic = buildings_industrial + buildings_commercial + buildings_public + buildings_other)
+
+hnmbr_2022 <- hnmbr_2022 %>%  
+  mutate(heat_network_type = case_when(
+    customers_residential != 0 & customers_non_domestic == 0 ~ as.character("Domestic"),
+    customers_non_domestic != 0 & customers_residential == 0 ~ as.character("Non-domestic"), 
+    customers_residential != 0 & customers_non_domestic != 0 ~ as.character("Mixed"),
+    TRUE ~ as.character("Unknown")))
+
+# ==== number of networks table ====
+
+number_of_networks_by_network_type <- hnmbr_2022 %>% 
+  group_by(heat_network_type) %>% 
+  summarise(number_of_networks = n())
+
 ```
 
-### Number of Customers (by type)
+## Total Capacity, Generation and Supply 
+
+```{r}
+hnmbr_2022 %>% 
+  summarise(total_capacity_units = sum(capacity_heating_hot_water, na.rm = T), 
+            total_generation_kwh = sum(generation_heating_hot_water, na.rm = T), 
+            total_supply_kwh = sum(supply_heating_hot_water, na.rm = T))
+```
+### Number of Missing values 
+
+```{r}
+hnmbr_2022 %>% 
+  summarise(capacity = sum(is.na(capacity_heating_hot_water)),
+            generation = sum(is.na(generation_heating_hot_water)), 
+            supply = sum(is.na(supply_heating_hot_water)))
+```
+
+### Imputed Capacity, Generation and Supply
+
+```{r}
+hnmbr_2022 %>% 
+  summarise(supply_missing = sum(is.na(imputed_supply_perc)), 
+            supply_present = sum(!is.na(imputed_supply_perc)))
+```
+
+
+### By network type 
+
+```{r}
+hnmbr_2022 %>% 
+  group_by(heat_network_type) %>% 
+  summarise(total_capacity_units = sum(capacity_heating_hot_water, na.rm = T), 
+            total_generation_kwh = sum(generation_heating_hot_water, na.rm = T), 
+            total_supply_kwh = sum(supply_heating_hot_water, na.rm = T)) 
+```
+
+### By technology 
+
+```{r}
+
+# formatting ====
+
+hnmbr_2022 <- hnmbr_2022 %>% 
+  mutate(primary_tech_type_cleaned =gsub("[^[:alnum:]]", "", tolower(primary_tech_type))) %>% 
+  mutate(primary_tech_type_cleaned = case_when(primary_tech_type == "CHP engine" ~ "CHP", 
+                                               primary_tech_type == "CHP Steam Turbine or Steam Screw Expander" ~ "CHP", 
+                                               primary_tech_type == "Engine-driven CHP" ~ "CHP",
+                                               primary_tech_type_cleaned == "heatexchangerfromwasteheatrecoveryprocess" ~ "wasteheat",
+                                               TRUE ~  primary_tech_type_cleaned))
+
+
+# table ===== 
+
+hnmbr_2022 %>% 
+  group_by(primary_tech_type_cleaned) %>% 
+  summarise(total_capacity_units = sum(capacity_heating_hot_water, na.rm = T), 
+            total_generation_kwh = sum(generation_heating_hot_water, na.rm = T), 
+            total_supply_kwh = sum(supply_heating_hot_water, na.rm = T)) 
+```
+### By fuel 
+
+```{r}
+
+# formatting ==== 
+
+hnmbr_2022 <- hnmbr_2022 %>% 
+  mutate(primary_tech_type_cleaned =gsub("[^[:alnum:]]", "", tolower(primary_tech_type))) 
+
+hnmbr_2022 %>% 
+  group_by(primary_energy_source) %>% 
+  summarise(total_capacity_units = sum(capacity_heating_hot_water, na.rm = T), 
+            total_generation_kwh = sum(generation_heating_hot_water, na.rm = T), 
+            total_supply_kwh = sum(supply_heating_hot_water, na.rm = T)) 
+```
+
+## Match rate to previous data cycle 
+
+Out of `r nrow(hnmbr_2022)` networks, we managed to match `r nrow(hnmbr_matched)` networks back to the previous (2018) data cycle. This equates to a `r (nrow(hnmbr_matched) / nrow(hnmbr_2022)) * 100`% match rate.  
+
+### Comparison of network type
+
+### Comparison of total Supply
+
 
 

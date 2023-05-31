@@ -48,16 +48,12 @@ To calculate an estimate of how much heat networks contribute to emission reduct
 hnmbr_emissions_variables <- hnmbr_full %>% 
   select(propert_name_heat_network, uprn, primary_energy_source, primary_tech_type, generation_heating_hot_water, customers_residential, total_customers, heat_network_customers)
 
-```
-
-```{r}
-#TODO: Issue with formatting of primary_energy_source variable
+# code below fixes issue with formatting of primary_energy_source variable
 
 hnmbr_emissions_variables <- hnmbr_emissions_variables %>% 
   mutate(primary_energy_source = gsub("[^[:alnum:]]", "", tolower(primary_energy_source)))
 
-hnmbr_emissions_variables <- hnmbr_emissions_variables %>% 
-  mutate(primary_energy_source)
+
 
 
 ```
@@ -107,8 +103,8 @@ This table represents the total emissions contributions for all networks we coul
 
 ```{r}
 
-total_CO2e_kg_all_networks <- network_emissions_table %>% 
-  summarise(total_emissions_kg_CO2e = sum(kg_CO2e))
+total_CO2e_kg_all_networks <- pluck(sum(network_emissions_table$kg_CO2e))
+
 
 total_CO2e_kg_all_networks
 
@@ -177,7 +173,46 @@ domestic_connection <- pluck(sum(hnmbr_emissions_variables$customers_residential
 
 domestic_network_emissions_table <- TDCV %>% 
   rowwise() %>% 
-  mutate(supply_kwh = value * domestic_connection)
+  mutate(total_domestic_connections = domestic_connection,
+         total_supply_kwh = value * domestic_connection) 
+
+domestic_network_emissions_table
 ```
 
+Here, total supply is calculated as the TDCV value multiplied by the number of total dommestic connections. 
+
+```{r}
+
+gas_ghg_conv_factor <- pluck(ghg_conv_factors, 2,5)
+
+domestic_network_emissions_table <- domestic_network_emissions_table %>% 
+  mutate(natural_gas_conversion = gas_ghg_conv_factor, 
+         kg_CO2e = total_supply_kwh * natural_gas_conversion)
+
+domestic_network_emissions_table
+
+```
+
+From this, we receive three values of emissions contributions based on low, medium and high TDCVs. 
+
+We can now calculate the % change between heat network associated emissions compared to each domestic connection having a gas boiler. 
+
+```{r}
+
+domestic_network_emissions_table <- hnmbr_emissions_variables_domestic %>% 
+  group_by(primary_energy_source) %>% 
+  summarise(number_of_networks = n(), 
+            generation_per_network_fuel = sum(generation_heating_hot_water, na.rm = T)) %>% 
+  inner_join(ghg_conv_factors, by = c("primary_energy_source" = "Fuel_type")) %>% 
+  mutate(kg_CO2e = generation_per_network_fuel * GHG_emissions_factor) %>% 
+  filter(kg_CO2e > 0)
+
+domestic_network_emissions_table
+
+total_CO2e_kg_domestic_networks <- pluck(sum(domestic_network_emissions_table$kg_CO2e))
+
+```
+```{r}
+#TODO: After lunch break - have a look at the missing values in generation and consider how much that is affecting the networks. Although more generation values would be driving this even higher. 
+```
 
